@@ -10,18 +10,34 @@ export default function DoubtComposer({ onPostDoubt, isMuted }) {
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState(null);
 
-  const fileInputRef = useRef(null);
+  const imageInputRef = useRef(null);
+  const videoInputRef = useRef(null);
 
-  const handleFileSelect = (e) => {
+  const handleImageSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const isVideo = file.type.startsWith('video/');
-    const isAudio = file.type.startsWith('audio/');
-    const type = isVideo ? 'video' : isAudio ? 'audio' : 'image';
+    if (!file.type.startsWith('image/')) {
+      alert('Please select a valid image file (PNG, JPG, WEBP, GIF).');
+      return;
+    }
 
     setMediaFile(file);
-    setMediaType(type);
+    setMediaType('image');
+    setMediaPreviewUrl(URL.createObjectURL(file));
+  };
+
+  const handleVideoSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('video/')) {
+      alert('Please select a valid video file (MP4, WEBM, MOV).');
+      return;
+    }
+
+    setMediaFile(file);
+    setMediaType('video');
     setMediaPreviewUrl(URL.createObjectURL(file));
   };
 
@@ -29,7 +45,8 @@ export default function DoubtComposer({ onPostDoubt, isMuted }) {
     setMediaFile(null);
     setMediaPreviewUrl(null);
     setMediaType(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (imageInputRef.current) imageInputRef.current.value = '';
+    if (videoInputRef.current) videoInputRef.current.value = '';
   };
 
   // Record Voice Note
@@ -105,12 +122,7 @@ export default function DoubtComposer({ onPostDoubt, isMuted }) {
   };
 
   return (
-    <div
-      className="paper-note"
-      style={{
-        marginBottom: '20px'
-      }}
-    >
+    <div className="paper-note" style={{ marginBottom: '20px' }}>
       <form onSubmit={handleSubmit}>
         <textarea
           rows={2}
@@ -181,28 +193,32 @@ export default function DoubtComposer({ onPostDoubt, isMuted }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #f1f5f9', paddingTop: '10px', flexWrap: 'wrap', gap: '8px' }}>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            {/* Dedicated Photo File Input */}
             <input
               type="file"
-              ref={fileInputRef}
-              accept="image/*,video/*"
-              onChange={handleFileSelect}
+              ref={imageInputRef}
+              accept="image/*"
+              onChange={handleImageSelect}
+              style={{ display: 'none' }}
+              disabled={isMuted}
+            />
+
+            {/* Dedicated Video File Input */}
+            <input
+              type="file"
+              ref={videoInputRef}
+              accept="video/*"
+              onChange={handleVideoSelect}
               style={{ display: 'none' }}
               disabled={isMuted}
             />
 
             <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isMuted}
-              style={{ background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: '4px', color: '#64748b', fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer' }}
-            >
-              <Type size={15} color="#7c3aed" />
-              <span>Text</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => {
+                if (imageInputRef.current) imageInputRef.current.value = '';
+                imageInputRef.current?.click();
+              }}
               disabled={isMuted}
               style={{ background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: '4px', color: '#64748b', fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer' }}
             >
@@ -212,7 +228,10 @@ export default function DoubtComposer({ onPostDoubt, isMuted }) {
 
             <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => {
+                if (videoInputRef.current) videoInputRef.current.value = '';
+                videoInputRef.current?.click();
+              }}
               disabled={isMuted}
               style={{ background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: '4px', color: '#64748b', fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer' }}
             >
