@@ -15,6 +15,16 @@ import ModerationBanner from './components/ModerationBanner';
 import ExplainerModal from './components/ExplainerModal';
 import confetti from 'canvas-confetti';
 
+// Helper: Persistent Anonymous Device Fingerprint (survives refresh / rejoin)
+function getOrCreateDeviceId() {
+  let devId = localStorage.getItem('doubt_undo_device_id');
+  if (!devId) {
+    devId = 'dev_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+    localStorage.setItem('doubt_undo_device_id', devId);
+  }
+  return devId;
+}
+
 export default function App() {
   const [view, setView] = useState('landing'); // 'landing' | 'join' | 'active'
   const [studentTab, setStudentTab] = useState('feed'); // 'feed' | 'my-doubts' | 'activity' | 'profile'
@@ -87,8 +97,9 @@ export default function App() {
       setDoubts((prev) => prev.filter((d) => d.id !== doubtId));
     });
 
-    socket.on('handle-muted', ({ handle: mutedHandle, auto }) => {
-      if (mutedHandle === handle) {
+    socket.on('handle-muted', ({ handle: mutedHandle, deviceId: mutedDevId }) => {
+      const myDevId = getOrCreateDeviceId();
+      if (mutedHandle === handle || (mutedDevId && mutedDevId === myDevId)) {
         setIsMuted(true);
       }
     });
@@ -110,7 +121,6 @@ export default function App() {
       setIsEnded(true);
     });
 
-    // Cleanup / Unload Handler
     const handleBeforeUnload = () => {
       socket.emit('leave-session');
     };
@@ -151,13 +161,15 @@ export default function App() {
   // Join Session (Student)
   const handleJoinSession = (code) => {
     connectSocket();
-    socket.emit('join-session', { sessionCode: code, requestedRole: 'student' }, (res) => {
+    const deviceId = getOrCreateDeviceId();
+
+    socket.emit('join-session', { sessionCode: code, requestedRole: 'student', deviceId }, (res) => {
       if (res && res.success) {
         setSessionCode(res.sessionCode);
         setHandle(res.handle);
         setRole(res.role);
         setIsEnded(res.isEnded);
-        setIsMuted(res.isMuted);
+        setIsMuted(!!res.isMuted);
         setQrCodeDataUrl(res.qrCode);
         setParticipantCount(res.participantCount || 1);
         setStudentCount(res.studentCount !== undefined ? res.studentCount : Math.max(0, (res.participantCount || 1) - 1));
@@ -172,9 +184,11 @@ export default function App() {
 
   // Post Doubt
   const handlePostDoubt = ({ text, mediaUrl, mediaType, originalMediaName }) => {
+    const deviceId = getOrCreateDeviceId();
     socket.emit('post-doubt', {
       sessionCode,
       handle,
+      deviceId,
       text,
       mediaUrl,
       mediaType,

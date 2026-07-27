@@ -77,7 +77,7 @@ function broadcastParticipantCount(sessionCode) {
   const session = sessions.get(sessionCode);
   if (!session) return;
   const count = session.participants.size;
-  const studentCount = Math.max(0, count - 1); // Exclude teacher if present
+  const studentCount = Math.max(0, count - 1);
 
   io.to(sessionCode).emit('participant-count-updated', {
     count,
@@ -92,6 +92,7 @@ function handleUserLeave(socket, sessionCode) {
   if (session) {
     session.participants.delete(socket.id);
     session.handles.delete(socket.id);
+    session.deviceMap.delete(socket.id);
     socket.leave(sessionCode);
     broadcastParticipantCount(sessionCode);
   }
@@ -152,10 +153,10 @@ io.on('connection', (socket) => {
   let currentSessionCode = null;
   let currentHandle = null;
   let currentRole = null;
+  let currentDeviceId = null;
 
   // 1. Create Session (Teacher)
   socket.on('create-session', async (ack) => {
-    // If previously in a session, leave it first
     if (currentSessionCode) {
       handleUserLeave(socket, currentSessionCode);
     }
@@ -173,8 +174,10 @@ io.on('connection', (socket) => {
       teacherSocketId: socket.id,
       participants: new Set([socket.id]),
       handles: new Map([[socket.id, 'Teacher']]),
-      nextStudentNumber: 1,
+      deviceMap: new Map(), // socketId -> deviceId
       mutedHandles: new Set(),
+      mutedDevices: new Set(), // deviceId persistence
+      nextStudentNumber: 1,
       doubts: [],
       reportCounts: new Map()
     };
@@ -199,7 +202,7 @@ io.on('connection', (socket) => {
   });
 
   // 2. Join Session (Student or Secondary Teacher)
-  socket.on('join-session', async ({ sessionCode, requestedRole }, ack) => {
+  socket.on('join-session', async ({ sessionCode, requestedRole, deviceId }, ack) => {
     const code = (sessionCode || '').toUpperCase().trim();
     const session = sessions.get(code);
 
@@ -217,13 +220,13 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // If previously in a session, leave it first
     if (currentSessionCode) {
       handleUserLeave(socket, currentSessionCode);
     }
 
     currentSessionCode = code;
     currentRole = requestedRole === 'teacher' ? 'teacher' : 'student';
+    currentDeviceId = deviceId || socket.id;
 
     if (currentRole === 'teacher') {
       currentHandle = 'Teacher';
@@ -233,8 +236,16 @@ io.on('connection', (socket) => {
 
     session.participants.add(socket.id);
     session.handles.set(socket.id, currentHandle);
-    socket.join(code);
+    session.deviceMap.set(socket.id, currentDeviceId);
 
+    // Persistent Mute Check by Device ID or Handle
+    const isMuted = session.mutedDevices.has(currentDeviceId) || session.mutedHandles.has(currentHandle);
+    if (isMuted) {
+      session.mutedHandles.add(currentHandle);
+      session.mutedDevices.add(currentDeviceId);
+    }
+
+    socket.join(code);
     broadcastParticipantCount(code);
 
     const hostHeader = socket.handshake.headers.host || 'localhost:3001';
@@ -249,7 +260,7 @@ io.on('connection', (socket) => {
         handle: currentHandle,
         role: currentRole,
         isEnded: session.ended,
-        isMuted: session.mutedHandles.has(currentHandle),
+        isMuted,
         qrCode: qrDataUrl,
         participantCount: session.participants.size,
         studentCount: Math.max(0, session.participants.size - 1),
@@ -261,27 +272,30 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 3. Leave Session Event (Explicit user exit / home button)
+  // 3. Leave Session Event
   socket.on('leave-session', () => {
     if (currentSessionCode) {
       handleUserLeave(socket, currentSessionCode);
       currentSessionCode = null;
       currentHandle = null;
       currentRole = null;
+      currentDeviceId = null;
     }
   });
 
   // 4. Post Doubt
-  socket.on('post-doubt', ({ text, mediaUrl, mediaType, originalMediaName }, ack) => {
+  socket.on('post-doubt', ({ text, mediaUrl, mediaType, originalMediaName, deviceId }, ack) => {
     if (!currentSessionCode) return;
     const session = sessions.get(currentSessionCode);
     if (!session || session.ended) return;
 
-    const isMuted = session.mutedHandles.has(currentHandle);
+    const activeDeviceId = deviceId || currentDeviceId || socket.id;
+    const isMuted = session.mutedDevices.has(activeDeviceId) || session.mutedHandles.has(currentHandle);
 
     const moderation = runPreDisplayModeration({
       sessionCode: currentSessionCode,
       handle: currentHandle,
+      deviceId: activeDeviceId,
       text,
       media: mediaUrl ? { originalname: originalMediaName || 'attachment', mimetype: mediaType } : null,
       isMuted
@@ -290,7 +304,8 @@ io.on('connection', (socket) => {
     if (!moderation.passed) {
       if (moderation.autoMuted) {
         session.mutedHandles.add(currentHandle);
-        io.to(currentSessionCode).emit('handle-muted', { handle: currentHandle, auto: true });
+        session.mutedDevices.add(activeDeviceId);
+        io.to(currentSessionCode).emit('handle-muted', { handle: currentHandle, deviceId: activeDeviceId, auto: true });
       }
 
       socket.emit('moderation-blocked', {
@@ -309,6 +324,7 @@ io.on('connection', (socket) => {
     const newDoubt = {
       id: `doubt_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
       handle: currentHandle,
+      deviceId: activeDeviceId,
       text: (text || '').trim(),
       mediaUrl: mediaUrl || null,
       mediaType: mediaType || null,
@@ -426,9 +442,24 @@ io.on('connection', (socket) => {
       io.to(currentSessionCode).emit('doubt-deleted', { doubtId: targetDoubtId });
     } else if (action === 'mute' && targetHandle) {
       session.mutedHandles.add(targetHandle);
+      
+      // Find associated deviceId and mute device as well
+      for (const [sockId, h] of session.handles.entries()) {
+        if (h === targetHandle) {
+          const devId = session.deviceMap.get(sockId);
+          if (devId) session.mutedDevices.add(devId);
+        }
+      }
+
       io.to(currentSessionCode).emit('handle-muted', { handle: targetHandle, auto: false });
     } else if (action === 'unmute' && targetHandle) {
       session.mutedHandles.delete(targetHandle);
+      for (const [sockId, h] of session.handles.entries()) {
+        if (h === targetHandle) {
+          const devId = session.deviceMap.get(sockId);
+          if (devId) session.mutedDevices.delete(devId);
+        }
+      }
       io.to(currentSessionCode).emit('handle-unmuted', { handle: targetHandle });
     }
 
@@ -467,6 +498,7 @@ io.on('connection', (socket) => {
       currentSessionCode = null;
       currentHandle = null;
       currentRole = null;
+      currentDeviceId = null;
     }
   });
 });
