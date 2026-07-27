@@ -23,6 +23,7 @@ export default function App() {
   const [sessionCode, setSessionCode] = useState(null);
   const [handle, setHandle] = useState(null);
   const [participantCount, setParticipantCount] = useState(1);
+  const [studentCount, setStudentCount] = useState(0);
   const [doubts, setDoubts] = useState([]);
   const [isEnded, setIsEnded] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -44,8 +45,9 @@ export default function App() {
 
   // Socket Event Listeners
   useEffect(() => {
-    socket.on('participant-count-updated', ({ count }) => {
-      setParticipantCount(count);
+    socket.on('participant-count-updated', ({ count, studentCount: sCount }) => {
+      setParticipantCount(count || 1);
+      setStudentCount(sCount !== undefined ? sCount : Math.max(0, (count || 1) - 1));
     });
 
     socket.on('new-doubt', (newDoubt) => {
@@ -108,7 +110,14 @@ export default function App() {
       setIsEnded(true);
     });
 
+    // Cleanup / Unload Handler
+    const handleBeforeUnload = () => {
+      socket.emit('leave-session');
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       socket.off('participant-count-updated');
       socket.off('new-doubt');
       socket.off('doubt-upvoted');
@@ -150,7 +159,8 @@ export default function App() {
         setIsEnded(res.isEnded);
         setIsMuted(res.isMuted);
         setQrCodeDataUrl(res.qrCode);
-        setParticipantCount(res.participantCount);
+        setParticipantCount(res.participantCount || 1);
+        setStudentCount(res.studentCount !== undefined ? res.studentCount : Math.max(0, (res.participantCount || 1) - 1));
         setDoubts(res.doubts || []);
         setView('active');
         setStudentTab('feed');
@@ -211,8 +221,9 @@ export default function App() {
     }
   };
 
-  // Home
+  // Home / Exit
   const handleHome = () => {
+    socket.emit('leave-session');
     setView('landing');
     setRole(null);
     setSessionCode(null);
@@ -243,7 +254,7 @@ export default function App() {
         />
       )}
 
-      {/* 3. Active Session Workspace (Pages 3, 4, 5, 6) */}
+      {/* 3. Active Session Workspace */}
       {view === 'active' && (
         <div className="notebook-grid" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
           
@@ -252,6 +263,7 @@ export default function App() {
             handle={handle}
             role={role}
             participantCount={participantCount}
+            studentCount={studentCount}
             onOpenQR={() => setShowQR(true)}
             onEndSession={handleEndSession}
             onLeaveSession={handleHome}
@@ -266,6 +278,7 @@ export default function App() {
                   createdAt: Date.now(),
                   endedAt: Date.now(),
                   participantCount,
+                  studentCount,
                   doubts
                 }}
                 onHome={handleHome}
@@ -275,6 +288,7 @@ export default function App() {
                 sessionCode={sessionCode}
                 doubts={doubts}
                 participantCount={participantCount}
+                studentCount={studentCount}
                 onUpvote={handleUpvote}
                 onUpdateStatus={handleUpdateStatus}
                 onTeacherAction={handleTeacherAction}
@@ -289,6 +303,7 @@ export default function App() {
                     handle={handle}
                     doubts={doubts}
                     participantCount={participantCount}
+                    studentCount={studentCount}
                     isMuted={isMuted}
                     onPostDoubt={handlePostDoubt}
                     onUpvote={handleUpvote}
@@ -313,6 +328,7 @@ export default function App() {
                     handle={handle}
                     sessionCode={sessionCode}
                     participantCount={participantCount}
+                    studentCount={studentCount}
                     doubts={doubts}
                   />
                 )}

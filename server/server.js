@@ -72,6 +72,31 @@ function generateSessionCode() {
   return code;
 }
 
+// Helper: Broadcast updated participant count for a session
+function broadcastParticipantCount(sessionCode) {
+  const session = sessions.get(sessionCode);
+  if (!session) return;
+  const count = session.participants.size;
+  const studentCount = Math.max(0, count - 1); // Exclude teacher if present
+
+  io.to(sessionCode).emit('participant-count-updated', {
+    count,
+    studentCount
+  });
+}
+
+// Helper: Process user leaving a session
+function handleUserLeave(socket, sessionCode) {
+  if (!sessionCode) return;
+  const session = sessions.get(sessionCode);
+  if (session) {
+    session.participants.delete(socket.id);
+    session.handles.delete(socket.id);
+    socket.leave(sessionCode);
+    broadcastParticipantCount(sessionCode);
+  }
+}
+
 // REST Endpoint: Media Upload
 app.post('/api/upload', upload.single('media'), (req, res) => {
   if (!req.file) {
@@ -130,6 +155,11 @@ io.on('connection', (socket) => {
 
   // 1. Create Session (Teacher)
   socket.on('create-session', async (ack) => {
+    // If previously in a session, leave it first
+    if (currentSessionCode) {
+      handleUserLeave(socket, currentSessionCode);
+    }
+
     const code = generateSessionCode();
     const hostHeader = socket.handshake.headers.host || 'localhost:3001';
     const protocol = socket.handshake.headers['x-forwarded-proto'] || 'http';
@@ -155,6 +185,7 @@ io.on('connection', (socket) => {
     currentRole = 'teacher';
 
     socket.join(code);
+    broadcastParticipantCount(code);
 
     if (typeof ack === 'function') {
       ack({
@@ -186,6 +217,11 @@ io.on('connection', (socket) => {
       return;
     }
 
+    // If previously in a session, leave it first
+    if (currentSessionCode) {
+      handleUserLeave(socket, currentSessionCode);
+    }
+
     currentSessionCode = code;
     currentRole = requestedRole === 'teacher' ? 'teacher' : 'student';
 
@@ -199,9 +235,7 @@ io.on('connection', (socket) => {
     session.handles.set(socket.id, currentHandle);
     socket.join(code);
 
-    io.to(code).emit('participant-count-updated', {
-      count: session.participants.size
-    });
+    broadcastParticipantCount(code);
 
     const hostHeader = socket.handshake.headers.host || 'localhost:3001';
     const protocol = socket.handshake.headers['x-forwarded-proto'] || 'http';
@@ -218,6 +252,7 @@ io.on('connection', (socket) => {
         isMuted: session.mutedHandles.has(currentHandle),
         qrCode: qrDataUrl,
         participantCount: session.participants.size,
+        studentCount: Math.max(0, session.participants.size - 1),
         doubts: session.doubts.map(d => ({
           ...d,
           hasUpvoted: d.upvotedBy.has(currentHandle)
@@ -226,7 +261,17 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 3. Post Doubt
+  // 3. Leave Session Event (Explicit user exit / home button)
+  socket.on('leave-session', () => {
+    if (currentSessionCode) {
+      handleUserLeave(socket, currentSessionCode);
+      currentSessionCode = null;
+      currentHandle = null;
+      currentRole = null;
+    }
+  });
+
+  // 4. Post Doubt
   socket.on('post-doubt', ({ text, mediaUrl, mediaType, originalMediaName }, ack) => {
     if (!currentSessionCode) return;
     const session = sessions.get(currentSessionCode);
@@ -287,7 +332,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 4. Upvote Doubt
+  // 5. Upvote Doubt
   socket.on('upvote-doubt', ({ doubtId }, ack) => {
     if (!currentSessionCode) return;
     const session = sessions.get(currentSessionCode);
@@ -318,7 +363,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 5. Update Status
+  // 6. Update Status
   socket.on('update-doubt-status', ({ doubtId, status, teacherReply }, ack) => {
     if (!currentSessionCode) return;
     const session = sessions.get(currentSessionCode);
@@ -343,7 +388,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 6. Report Doubt
+  // 7. Report Doubt
   socket.on('report-doubt', ({ doubtId }, ack) => {
     if (!currentSessionCode) return;
     const session = sessions.get(currentSessionCode);
@@ -370,7 +415,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 7. Teacher Controls
+  // 8. Teacher Controls
   socket.on('teacher-action', ({ action, targetDoubtId, targetHandle }, ack) => {
     if (!currentSessionCode || currentRole !== 'teacher') return;
     const session = sessions.get(currentSessionCode);
@@ -392,7 +437,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 8. End Session
+  // 9. End Session
   socket.on('end-session', (ack) => {
     if (!currentSessionCode || currentRole !== 'teacher') return;
     const session = sessions.get(currentSessionCode);
@@ -415,16 +460,13 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Disconnect Handler
   socket.on('disconnect', () => {
     if (currentSessionCode) {
-      const session = sessions.get(currentSessionCode);
-      if (session) {
-        session.participants.delete(socket.id);
-        session.handles.delete(socket.id);
-        io.to(currentSessionCode).emit('participant-count-updated', {
-          count: session.participants.size
-        });
-      }
+      handleUserLeave(socket, currentSessionCode);
+      currentSessionCode = null;
+      currentHandle = null;
+      currentRole = null;
     }
   });
 });
