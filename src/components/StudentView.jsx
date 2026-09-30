@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import DoubtCard from './DoubtCard';
 import DoubtComposer from './DoubtComposer';
-import { Sparkles, Download, FileText } from 'lucide-react';
+import { Sparkles, Download } from 'lucide-react';
 import { exportSessionToPDF } from '../utils/exportPdf';
-import { exportSessionToDOCX } from '../utils/exportDocx';
 
 export default function StudentView({
   sessionCode,
@@ -32,10 +31,6 @@ export default function StudentView({
     exportSessionToPDF({ code: sessionCode, createdAt: Date.now(), participantCount, totalDoubts: doubts.length, doubts });
   };
 
-  const handleExportDOCX = () => {
-    exportSessionToDOCX({ code: sessionCode, createdAt: Date.now(), participantCount, totalDoubts: doubts.length, doubts });
-  };
-
   return (
     <div style={{ width: '100%', maxWidth: '800px', margin: '0 auto', padding: '16px 20px 100px', boxSizing: 'border-box' }}>
       
@@ -44,7 +39,7 @@ export default function StudentView({
         <DoubtComposer onPostDoubt={onPostDoubt} isMuted={isMuted} />
       )}
 
-      {/* Tabs Bar & Export Controls */}
+      {/* Tabs Bar & PDF Export Control */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
         <div style={{ display: 'flex', gap: '4px', background: '#e2e8f050', padding: '4px', borderRadius: '20px' }}>
           <button
@@ -62,12 +57,9 @@ export default function StudentView({
           </button>
         </div>
 
-        <div style={{ display: 'flex', gap: '6px' }}>
-          <button onClick={handleExportPDF} className="btn-pill-light" style={{ padding: '4px 10px', fontSize: '0.78rem', height: '32px' }}>
-            <Download size={12} /> PDF
-          </button>
-          <button onClick={handleExportDOCX} className="btn-pill-light" style={{ padding: '4px 10px', fontSize: '0.78rem', height: '32px' }}>
-            <FileText size={12} color="#7c3aed" /> DOCX
+        <div>
+          <button onClick={handleExportPDF} className="btn-pill-light" style={{ padding: '6px 14px', fontSize: '0.82rem', height: '34px' }}>
+            <Download size={13} /> PDF Summary
           </button>
         </div>
       </div>

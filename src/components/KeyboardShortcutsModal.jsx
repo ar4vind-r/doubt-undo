@@ -7,7 +7,6 @@ export default function KeyboardShortcutsModal({ onClose, role }) {
     { key: 'Ctrl + Enter', desc: 'Submit posted doubt from composer' },
     { key: '1 / 2 / 3', desc: 'Switch Feed Tabs (Recent / Top / Unanswered)' },
     { key: 'Shift + P', desc: 'Export Session as PDF' },
-    { key: 'Shift + D', desc: 'Export Session as DOCX' },
     { key: 'Shift + Q', desc: 'Toggle QR Code Modal' },
     { key: '?', desc: 'Show / Hide Keyboard Shortcuts' },
     { key: 'Esc', desc: 'Close open modal or dialog' }

@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import DoubtCard from './DoubtCard';
-import { Download, FileText, Sparkles } from 'lucide-react';
+import { Download, Sparkles } from 'lucide-react';
 import { exportSessionToPDF } from '../utils/exportPdf';
-import { exportSessionToDOCX } from '../utils/exportDocx';
 
 export default function TeacherView({
   sessionCode,
@@ -32,10 +31,6 @@ export default function TeacherView({
 
   const handleExportPDF = () => {
     exportSessionToPDF({ code: sessionCode, createdAt: Date.now(), participantCount, totalDoubts: doubts.length, doubts });
-  };
-
-  const handleExportDOCX = () => {
-    exportSessionToDOCX({ code: sessionCode, createdAt: Date.now(), participantCount, totalDoubts: doubts.length, doubts });
   };
 
   return (
@@ -79,12 +74,9 @@ export default function TeacherView({
           </button>
         </div>
 
-        <div style={{ display: 'flex', gap: '6px' }}>
+        <div>
           <button onClick={handleExportPDF} className="btn-pill-light" style={{ padding: '6px 12px', fontSize: '0.78rem', height: '32px' }}>
             <Download size={13} /> PDF
-          </button>
-          <button onClick={handleExportDOCX} className="btn-pill-light" style={{ padding: '6px 12px', fontSize: '0.78rem', height: '32px' }}>
-            <FileText size={13} color="#7c3aed" /> DOCX
           </button>
         </div>
       </div>
@@ -126,13 +118,13 @@ export default function TeacherView({
           left: '50%',
           transform: 'translateX(-50%)',
           width: 'calc(100% - 40px)',
-          maxWidth: '440px',
+          maxWidth: '380px',
           background: '#ffffff',
           borderRadius: '24px',
           padding: '10px 14px',
           boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
           display: 'flex',
-          gap: '10px',
+          justifyContent: 'center',
           zIndex: 400,
           border: '1px solid #f1f5f9'
         }}
@@ -140,19 +132,10 @@ export default function TeacherView({
         <button
           onClick={handleExportPDF}
           className="btn-pill-light"
-          style={{ flex: 1, padding: '8px 12px', fontSize: '0.85rem', height: '40px' }}
+          style={{ width: '100%', padding: '8px 12px', fontSize: '0.88rem', height: '40px', justifyContent: 'center' }}
         >
-          <Download size={15} />
-          <span>Export Session</span>
-        </button>
-
-        <button
-          onClick={handleExportDOCX}
-          className="btn-pill-light"
-          style={{ flex: 1, padding: '8px 12px', fontSize: '0.85rem', height: '40px' }}
-        >
-          <FileText size={15} color="#7c3aed" />
-          <span>DOCX</span>
+          <Download size={16} />
+          <span>Download PDF Session Export</span>
         </button>
       </div>
 

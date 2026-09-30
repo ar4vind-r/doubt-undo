@@ -1,8 +1,7 @@
 import React from 'react';
-import { Download, FileText, CheckCircle, ThumbsUp, Users, RefreshCw, Award, Sparkles } from 'lucide-react';
+import { Download, CheckCircle, ThumbsUp, RefreshCw, Award } from 'lucide-react';
 import Logo from './Logo';
 import { exportSessionToPDF } from '../utils/exportPdf';
-import { exportSessionToDOCX } from '../utils/exportDocx';
 
 export default function ArchiveView({ sessionData, onHome }) {
   if (!sessionData) return null;
@@ -17,10 +16,6 @@ export default function ArchiveView({ sessionData, onHome }) {
 
   const handleExportPDF = () => {
     exportSessionToPDF(sessionData);
-  };
-
-  const handleExportDOCX = async () => {
-    await exportSessionToDOCX(sessionData);
   };
 
   return (
@@ -63,7 +58,7 @@ export default function ArchiveView({ sessionData, onHome }) {
           Session <strong style={{ color: '#7c3aed', background: '#f3e8ff', padding: '2px 8px', borderRadius: '8px' }}>{code}</strong> has completed. Download the full doubt record below.
         </p>
 
-        {/* Redesigned Pill Action Buttons (Matching Digital Notebook Theme) */}
+        {/* Action Buttons */}
         <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <button
             onClick={handleExportPDF}
@@ -72,15 +67,6 @@ export default function ArchiveView({ sessionData, onHome }) {
           >
             <Download size={18} />
             <span>Download PDF Summary</span>
-          </button>
-
-          <button
-            onClick={handleExportDOCX}
-            className="btn-pill-light"
-            style={{ padding: '12px 24px', fontSize: '0.92rem' }}
-          >
-            <FileText size={18} color="#7c3aed" />
-            <span>Download DOCX Document</span>
           </button>
 
           <button

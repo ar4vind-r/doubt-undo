@@ -16,7 +16,6 @@ import ExplainerModal from './components/ExplainerModal';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import LoadingScreen from './components/LoadingScreen';
 import { exportSessionToPDF } from './utils/exportPdf';
-import { exportSessionToDOCX } from './utils/exportDocx';
 
 // Helper: Persistent Anonymous Device Fingerprint (survives refresh / rejoin)
 function getOrCreateDeviceId() {
@@ -133,12 +132,6 @@ export default function App() {
         if (e.shiftKey && (e.key === 'P' || e.key === 'p')) {
           e.preventDefault();
           exportSessionToPDF({ code: sessionCode, createdAt: Date.now(), participantCount, totalDoubts: doubts.length, doubts });
-        }
-
-        // Shift + D -> Export DOCX
-        if (e.shiftKey && (e.key === 'D' || e.key === 'd')) {
-          e.preventDefault();
-          exportSessionToDOCX({ code: sessionCode, createdAt: Date.now(), participantCount, totalDoubts: doubts.length, doubts });
         }
       }
     };
