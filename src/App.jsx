@@ -14,6 +14,7 @@ import QRCodeModal from './components/QRCodeModal';
 import ModerationBanner from './components/ModerationBanner';
 import ExplainerModal from './components/ExplainerModal';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
+import LoadingScreen from './components/LoadingScreen';
 import { exportSessionToPDF } from './utils/exportPdf';
 import { exportSessionToDOCX } from './utils/exportDocx';
 
@@ -40,6 +41,9 @@ export default function App() {
   const [isEnded, setIsEnded] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
 
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadingMessage, setLoadingMessage] = useState('Restoring active classroom session...');
+
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState(null);
   const [showQR, setShowQR] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
@@ -47,13 +51,29 @@ export default function App() {
   const [blockData, setBlockData] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
 
-  // Check URL query param code on load
+  // Auto-restore active session on page reload/refresh
   useEffect(() => {
     connectSocket();
     const params = new URLSearchParams(window.location.search);
     const codeParam = params.get('code');
-    if (codeParam) {
-      handleJoinSession(codeParam.toUpperCase());
+
+    let savedSession = null;
+    try {
+      const raw = localStorage.getItem('doubt_undo_active_session');
+      if (raw) savedSession = JSON.parse(raw);
+    } catch (e) {}
+
+    const codeToJoin = codeParam ? codeParam.toUpperCase() : savedSession?.sessionCode;
+    const roleToJoin = savedSession?.role || 'student';
+
+    if (codeToJoin) {
+      setLoadingMessage('Restoring live classroom session...');
+      setIsLoading(true);
+      handleJoinSession(codeToJoin, roleToJoin, (success) => {
+        setIsLoading(false);
+      });
+    } else {
+      setIsLoading(false);
     }
   }, []);
 
@@ -216,8 +236,11 @@ export default function App() {
 
   // Create Session (Teacher)
   const handleCreateSession = () => {
+    setIsLoading(true);
+    setLoadingMessage('Initializing Live Classroom...');
     connectSocket();
     socket.emit('create-session', (res) => {
+      setIsLoading(false);
       if (res && res.success) {
         setSessionCode(res.sessionCode);
         setHandle(res.handle);
@@ -227,16 +250,24 @@ export default function App() {
         setIsEnded(false);
         setView('active');
         setShowQR(true);
+        localStorage.setItem('doubt_undo_active_session', JSON.stringify({
+          sessionCode: res.sessionCode,
+          role: 'teacher',
+          handle: res.handle
+        }));
       }
     });
   };
 
-  // Join Session (Student)
-  const handleJoinSession = (code) => {
+  // Join Session (Student or Teacher reconnect)
+  const handleJoinSession = (code, requestedRole = 'student', callback) => {
     connectSocket();
     const deviceId = getOrCreateDeviceId();
+    setIsLoading(true);
+    setLoadingMessage('Connecting to classroom...');
 
-    socket.emit('join-session', { sessionCode: code, requestedRole: 'student', deviceId }, (res) => {
+    socket.emit('join-session', { sessionCode: code, requestedRole, deviceId }, (res) => {
+      setIsLoading(false);
       if (res && res.success) {
         setSessionCode(res.sessionCode);
         setHandle(res.handle);
@@ -249,8 +280,17 @@ export default function App() {
         setDoubts(res.doubts || []);
         setView('active');
         setStudentTab('feed');
+        localStorage.setItem('doubt_undo_active_session', JSON.stringify({
+          sessionCode: res.sessionCode,
+          role: res.role,
+          handle: res.handle
+        }));
+        if (callback) callback(true);
       } else {
-        alert(res?.error || 'Unable to join session. Please verify the code.');
+        localStorage.removeItem('doubt_undo_active_session');
+        if (callback) callback(false);
+        else alert(res?.error || 'Unable to join session. Please verify the code.');
+        setView('landing');
       }
     });
   };
@@ -304,6 +344,7 @@ export default function App() {
     if (window.confirm('Are you sure you want to end this live session? Feed will be archived.')) {
       socket.emit('end-session', () => {
         setIsEnded(true);
+        localStorage.removeItem('doubt_undo_active_session');
       });
     }
   };
@@ -311,6 +352,7 @@ export default function App() {
   // Home / Exit
   const handleHome = () => {
     socket.emit('leave-session');
+    localStorage.removeItem('doubt_undo_active_session');
     setView('landing');
     setRole(null);
     setSessionCode(null);
@@ -324,6 +366,9 @@ export default function App() {
   return (
     <div className="app-viewport">
       
+      {/* Animated Loading Overlay Screen */}
+      {isLoading && <LoadingScreen message={loadingMessage} />}
+
       {/* Toast Notification Banner */}
       {toastMessage && (
         <div
@@ -350,7 +395,7 @@ export default function App() {
       )}
 
       {/* 1. Landing View (Page 1) */}
-      {view === 'landing' && (
+      {!isLoading && view === 'landing' && (
         <RoleSelector
           onCreateSession={handleCreateSession}
           onOpenJoin={() => setView('join')}
@@ -359,15 +404,15 @@ export default function App() {
       )}
 
       {/* 2. Join Session Modal/Page (Page 2) */}
-      {view === 'join' && (
+      {!isLoading && view === 'join' && (
         <JoinSessionModal
-          onJoinSession={handleJoinSession}
+          onJoinSession={(code) => handleJoinSession(code, 'student')}
           onBack={() => setView('landing')}
         />
       )}
 
       {/* 3. Active Session Workspace */}
-      {view === 'active' && (
+      {!isLoading && view === 'active' && (
         <div className="notebook-grid" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
           
           <TopHeader
