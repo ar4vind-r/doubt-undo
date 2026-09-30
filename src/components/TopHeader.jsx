@@ -220,8 +220,8 @@ export default function TopHeader({
               <button
                 onClick={onOpenQR}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.3)',
-                  color: '#1e1b4b',
+                  background: '#ffffff',
+                  color: '#18181b',
                   border: 'none',
                   borderRadius: '14px',
                   padding: '8px 14px',
@@ -230,7 +230,8 @@ export default function TopHeader({
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '4px'
+                  gap: '6px',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.08)'
                 }}
               >
                 <QrCode size={14} />
