@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutGrid, HelpCircle, Bell, User } from 'lucide-react';
+import { LayoutGrid, HelpCircle, User } from 'lucide-react';
 
 export default function BottomNav({ activeTab, setActiveTab }) {
   return (
@@ -18,14 +18,6 @@ export default function BottomNav({ activeTab, setActiveTab }) {
       >
         <HelpCircle size={20} />
         <span>My Doubts</span>
-      </button>
-
-      <button
-        onClick={() => setActiveTab('activity')}
-        className={`nav-item ${activeTab === 'activity' ? 'active' : ''}`}
-      >
-        <Bell size={20} />
-        <span>Activity</span>
       </button>
 
       <button

@@ -1,6 +1,6 @@
 import React from 'react';
 import Logo from './Logo';
-import { LogIn, Sparkles, PlayCircle, HelpCircle, Bell } from 'lucide-react';
+import { LogIn, Sparkles, HelpCircle } from 'lucide-react';
 
 export default function RoleSelector({ onCreateSession, onOpenJoin, onOpenHowItWorks }) {
   return (
@@ -57,10 +57,6 @@ export default function RoleSelector({ onCreateSession, onOpenJoin, onOpenHowItW
             <HelpCircle size={15} />
             <span>How it works?</span>
           </button>
-
-          <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Bell size={18} color="white" />
-          </div>
         </div>
       </div>
 
@@ -139,26 +135,6 @@ export default function RoleSelector({ onCreateSession, onOpenJoin, onOpenHowItW
         >
           <Sparkles size={20} color="#7c3aed" />
           <span>Start a Session</span>
-        </button>
-
-        <button
-          onClick={onOpenHowItWorks}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'rgba(255, 255, 255, 0.9)',
-            fontSize: '0.9rem',
-            fontWeight: '600',
-            cursor: 'pointer',
-            marginTop: '8px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px'
-          }}
-        >
-          <PlayCircle size={16} />
-          <span>How it works?</span>
         </button>
 
       </div>
