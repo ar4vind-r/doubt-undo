@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import DoubtCard from './DoubtCard';
-import { Download, FileText, Trash2, CheckCircle2, Sparkles, Filter } from 'lucide-react';
+import { Download, FileText, Sparkles } from 'lucide-react';
 import { exportSessionToPDF } from '../utils/exportPdf';
 import { exportSessionToDOCX } from '../utils/exportDocx';
 
@@ -39,12 +39,24 @@ export default function TeacherView({
   };
 
   return (
-    <div style={{ maxWidth: '840px', margin: '0 auto', padding: '0 20px 80px' }}>
+    <div style={{ width: '100%', maxWidth: '840px', margin: '0 auto', padding: '16px 20px 100px', boxSizing: 'border-box' }}>
       
-      {/* Teacher Dashboard Header Tabs (Matching Reference Image) */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '20px 0 16px', background: '#ffffff', padding: '6px', borderRadius: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-        
-        <div style={{ display: 'flex', gap: '4px' }}>
+      {/* Teacher Dashboard Header Filter Bar */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          margin: '0 0 16px',
+          background: '#ffffff',
+          padding: '6px 10px',
+          borderRadius: '24px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+          flexWrap: 'wrap',
+          gap: '8px'
+        }}
+      >
+        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
           <button
             onClick={() => setFilter('all')}
             className={`tab-pill ${filter === 'all' ? 'active' : ''}`}
@@ -67,12 +79,20 @@ export default function TeacherView({
           </button>
         </div>
 
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <button onClick={handleExportPDF} className="btn-pill-light" style={{ padding: '6px 12px', fontSize: '0.78rem', height: '32px' }}>
+            <Download size={13} /> PDF
+          </button>
+          <button onClick={handleExportDOCX} className="btn-pill-light" style={{ padding: '6px 12px', fontSize: '0.78rem', height: '32px' }}>
+            <FileText size={13} color="#7c3aed" /> DOCX
+          </button>
+        </div>
       </div>
 
       {/* Doubt Feed List */}
       {sortedDoubts.length === 0 ? (
-        <div className="paper-note" style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-          <Sparkles size={36} color="#7c3aed" style={{ marginBottom: '12px' }} />
+        <div className="paper-note" style={{ padding: '40px 20px', textAlign: 'center', color: '#64748b' }}>
+          <Sparkles size={36} color="#7c3aed" style={{ marginBottom: '12px', display: 'inline-block' }} />
           <h3 style={{ fontSize: '1.15rem', fontWeight: '700', color: '#18181b', marginBottom: '4px' }}>
             No doubts match this filter
           </h3>
@@ -81,22 +101,24 @@ export default function TeacherView({
           </p>
         </div>
       ) : (
-        sortedDoubts.map((doubt) => (
-          <DoubtCard
-            key={doubt.id}
-            doubt={doubt}
-            currentHandle="Teacher"
-            role="teacher"
-            onUpvote={onUpvote}
-            onUpdateStatus={onUpdateStatus}
-            onTeacherAction={onTeacherAction}
-            onReport={onReport}
-            isEnded={isEnded}
-          />
-        ))
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {sortedDoubts.map((doubt) => (
+            <DoubtCard
+              key={doubt.id}
+              doubt={doubt}
+              currentHandle="Teacher"
+              role="teacher"
+              onUpvote={onUpvote}
+              onUpdateStatus={onUpdateStatus}
+              onTeacherAction={onTeacherAction}
+              onReport={onReport}
+              isEnded={isEnded}
+            />
+          ))}
+        </div>
       )}
 
-      {/* Sticky Bottom Action Bar (Matching Reference Image Specification) */}
+      {/* Sticky Bottom Action Bar */}
       <div
         style={{
           position: 'fixed',
@@ -107,10 +129,10 @@ export default function TeacherView({
           maxWidth: '440px',
           background: '#ffffff',
           borderRadius: '24px',
-          padding: '12px 16px',
+          padding: '10px 14px',
           boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
           display: 'flex',
-          gap: '12px',
+          gap: '10px',
           zIndex: 400,
           border: '1px solid #f1f5f9'
         }}
@@ -118,18 +140,18 @@ export default function TeacherView({
         <button
           onClick={handleExportPDF}
           className="btn-pill-light"
-          style={{ flex: 1, padding: '10px 14px', fontSize: '0.88rem', height: '44px' }}
+          style={{ flex: 1, padding: '8px 12px', fontSize: '0.85rem', height: '40px' }}
         >
-          <Download size={16} />
+          <Download size={15} />
           <span>Export Session</span>
         </button>
 
         <button
           onClick={handleExportDOCX}
           className="btn-pill-light"
-          style={{ flex: 1, padding: '10px 14px', fontSize: '0.88rem', height: '44px' }}
+          style={{ flex: 1, padding: '8px 12px', fontSize: '0.85rem', height: '40px' }}
         >
-          <FileText size={16} color="#7c3aed" />
+          <FileText size={15} color="#7c3aed" />
           <span>DOCX</span>
         </button>
       </div>

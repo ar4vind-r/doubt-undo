@@ -27,7 +27,7 @@
   --font-ui: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-hand: 'Caveat', cursive, sans-serif;
   
-  --radius-card: 24px;
+  --radius-card: 20px;
   --radius-pill: 50px;
   
   --shadow-soft: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.03);
@@ -43,11 +43,20 @@
 html, body {
   width: 100%;
   min-height: 100%;
+  min-height: 100dvh;
   overflow-x: hidden;
-  background-color: var(--bg-lavender);
+  background-color: #8c7bf0;
   color: var(--text-dark);
   font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Notebook Grid Pattern Utility */
@@ -59,43 +68,27 @@ html, body {
   background-size: 24px 24px;
 }
 
-/* Responsive Viewport Shell - No Layout Shifts! */
+/* 100% Full-Bleed Viewport Shell */
 .app-viewport {
   width: 100%;
-  max-width: 100%;
+  max-width: 100vw;
   min-height: 100vh;
-  margin: 0 auto;
-  background: #f8fafc;
-  position: relative;
+  min-height: 100dvh;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  overflow-x: hidden;
   box-sizing: border-box;
+  overflow-x: hidden;
 }
 
-@media (min-width: 768px) {
-  .app-viewport {
-    max-width: 760px;
-    margin: 20px auto;
-    min-height: calc(100vh - 40px);
-    border-radius: 28px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
-  }
-}
-
-@media (min-width: 1024px) {
-  .app-viewport {
-    max-width: 960px;
-  }
-}
-
-/* Stable Paper Note Component - Prevents Layout Shift */
+/* Paper Note Component - Responsive scaling */
 .paper-note {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
   background: #ffffff;
-  border-radius: 20px;
+  border-radius: var(--radius-card);
   padding: 18px 20px;
   box-shadow: var(--shadow-soft);
   position: relative;
@@ -163,8 +156,8 @@ html, body {
   color: #ffffff;
   font-family: var(--font-ui);
   font-weight: 700;
-  font-size: 0.98rem;
-  padding: 14px 24px;
+  font-size: 0.95rem;
+  padding: 12px 20px;
   border-radius: var(--radius-pill);
   border: none;
   cursor: pointer;
@@ -188,8 +181,8 @@ html, body {
   color: var(--text-dark);
   font-family: var(--font-ui);
   font-weight: 700;
-  font-size: 0.98rem;
-  padding: 14px 24px;
+  font-size: 0.95rem;
+  padding: 12px 20px;
   border-radius: var(--radius-pill);
   border: 1px solid #e4e4e7;
   cursor: pointer;
@@ -206,7 +199,7 @@ html, body {
   background-color: #f4f4f5;
 }
 
-/* Upvote Pill Button - Fixed Dimension Stability */
+/* Upvote Pill Button */
 .upvote-pill {
   display: flex;
   flex-direction: column;
@@ -275,6 +268,7 @@ html, body {
   border: none;
   cursor: pointer;
   white-space: nowrap;
+  transition: all 0.2s ease;
 }
 
 .tab-pill.active {
@@ -283,7 +277,40 @@ html, body {
   box-shadow: 0 2px 6px rgba(0,0,0,0.05);
 }
 
-/* Mobile Bottom Navigation - Stable Position */
+/* Responsive Desktop Scaling */
+@media (min-width: 768px) {
+  .paper-note {
+    padding: 24px 28px;
+    border-radius: 24px;
+  }
+  .upvote-pill {
+    width: 52px;
+    min-width: 52px;
+    height: 60px;
+    border-radius: 16px;
+  }
+  .tab-pill {
+    padding: 10px 20px;
+    font-size: 0.95rem;
+    border-radius: 18px;
+  }
+  .btn-pill-dark, .btn-pill-light {
+    padding: 14px 24px;
+    font-size: 1.05rem;
+  }
+  .tag {
+    padding: 4px 12px;
+    font-size: 0.8rem;
+    border-radius: 18px;
+  }
+  .badge {
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    border-radius: 16px;
+  }
+}
+
+/* Mobile Bottom Navigation - Centered & Sticky */
 .bottom-nav {
   position: sticky;
   bottom: 0;

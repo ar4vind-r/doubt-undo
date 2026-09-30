@@ -37,15 +37,15 @@ export default function StudentView({
   };
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 20px 80px' }}>
+    <div style={{ width: '100%', maxWidth: '800px', margin: '0 auto', padding: '16px 20px 100px', boxSizing: 'border-box' }}>
       
       {/* Doubt Composer Card */}
       {!isEnded && (
         <DoubtComposer onPostDoubt={onPostDoubt} isMuted={isMuted} />
       )}
 
-      {/* Tabs Bar (Recent vs Top - Matching Reference Image) */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+      {/* Tabs Bar & Export Controls */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
         <div style={{ display: 'flex', gap: '4px', background: '#e2e8f050', padding: '4px', borderRadius: '20px' }}>
           <button
             onClick={() => setActiveTab('recent')}
@@ -74,8 +74,8 @@ export default function StudentView({
 
       {/* Feed List */}
       {sortedDoubts.length === 0 ? (
-        <div className="paper-note" style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>
-          <Sparkles size={32} color="#7c3aed" style={{ marginBottom: '10px' }} />
+        <div className="paper-note" style={{ padding: '36px 20px', textAlign: 'center', color: '#64748b' }}>
+          <Sparkles size={32} color="#7c3aed" style={{ marginBottom: '10px', display: 'inline-block' }} />
           <h4 style={{ fontFamily: 'var(--font-ui)', fontSize: '1.1rem', fontWeight: '700', marginBottom: '4px', color: '#18181b' }}>
             No doubts posted yet
           </h4>
@@ -84,19 +84,21 @@ export default function StudentView({
           </p>
         </div>
       ) : (
-        sortedDoubts.map((doubt) => (
-          <DoubtCard
-            key={doubt.id}
-            doubt={doubt}
-            currentHandle={handle}
-            role="student"
-            onUpvote={onUpvote}
-            onUpdateStatus={() => {}}
-            onTeacherAction={() => {}}
-            onReport={onReport}
-            isEnded={isEnded}
-          />
-        ))
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {sortedDoubts.map((doubt) => (
+            <DoubtCard
+              key={doubt.id}
+              doubt={doubt}
+              currentHandle={handle}
+              role="student"
+              onUpvote={onUpvote}
+              onUpdateStatus={() => {}}
+              onTeacherAction={() => {}}
+              onReport={onReport}
+              isEnded={isEnded}
+            />
+          ))}
+        </div>
       )}
 
     </div>

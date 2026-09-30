@@ -13,7 +13,9 @@ import BottomNav from './components/BottomNav';
 import QRCodeModal from './components/QRCodeModal';
 import ModerationBanner from './components/ModerationBanner';
 import ExplainerModal from './components/ExplainerModal';
-import confetti from 'canvas-confetti';
+import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
+import { exportSessionToPDF } from './utils/exportPdf';
+import { exportSessionToDOCX } from './utils/exportDocx';
 
 // Helper: Persistent Anonymous Device Fingerprint (survives refresh / rejoin)
 function getOrCreateDeviceId() {
@@ -41,7 +43,9 @@ export default function App() {
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState(null);
   const [showQR, setShowQR] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const [blockData, setBlockData] = useState(null);
+  const [toastMessage, setToastMessage] = useState(null);
 
   // Check URL query param code on load
   useEffect(() => {
@@ -52,6 +56,76 @@ export default function App() {
       handleJoinSession(codeParam.toUpperCase());
     }
   }, []);
+
+  // Global Desktop Keyboard Shortcuts Listener
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const activeEl = document.activeElement;
+      const isInputOrTextarea = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable);
+
+      // Esc closes any open modal
+      if (e.key === 'Escape') {
+        setShowQR(false);
+        setShowShortcuts(false);
+        setShowHowItWorks(false);
+        setBlockData(null);
+        return;
+      }
+
+      // Shift + / or '?' opens shortcuts modal
+      if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+        if (!isInputOrTextarea) {
+          e.preventDefault();
+          setShowShortcuts((prev) => !prev);
+          return;
+        }
+      }
+
+      // If user is typing inside an input/textarea
+      if (isInputOrTextarea) {
+        // Ctrl+Enter or Cmd+Enter submits form
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          const form = activeEl.closest('form');
+          if (form) {
+            e.preventDefault();
+            form.requestSubmit();
+          }
+        }
+        return;
+      }
+
+      // Active Session Desktop Shortcuts
+      if (view === 'active') {
+        // 'N' or 'C' focuses doubt composer
+        if (e.key === 'n' || e.key === 'N' || e.key === 'c' || e.key === 'C') {
+          e.preventDefault();
+          const textarea = document.querySelector('textarea');
+          if (textarea) textarea.focus();
+        }
+
+        // Shift + Q -> QR Code
+        if (e.shiftKey && (e.key === 'Q' || e.key === 'q')) {
+          e.preventDefault();
+          setShowQR((prev) => !prev);
+        }
+
+        // Shift + P -> Export PDF
+        if (e.shiftKey && (e.key === 'P' || e.key === 'p')) {
+          e.preventDefault();
+          exportSessionToPDF({ code: sessionCode, createdAt: Date.now(), participantCount, totalDoubts: doubts.length, doubts });
+        }
+
+        // Shift + D -> Export DOCX
+        if (e.shiftKey && (e.key === 'D' || e.key === 'd')) {
+          e.preventDefault();
+          exportSessionToDOCX({ code: sessionCode, createdAt: Date.now(), participantCount, totalDoubts: doubts.length, doubts });
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [view, sessionCode, participantCount, doubts]);
 
   // Socket Event Listeners
   useEffect(() => {
@@ -78,9 +152,8 @@ export default function App() {
         prev.map((d) => {
           if (d.id === doubtId) {
             if (status === 'answered' && d.status !== 'answered') {
-              try {
-                confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
-              } catch (e) {}
+              setToastMessage('✓ Successfully answered 1 doubt!');
+              setTimeout(() => setToastMessage(null), 3000);
             }
             return { ...d, status, teacherReply: teacherReply !== undefined ? teacherReply : d.teacherReply };
           }
@@ -251,6 +324,31 @@ export default function App() {
   return (
     <div className="app-viewport">
       
+      {/* Toast Notification Banner */}
+      {toastMessage && (
+        <div
+          className="fade-in"
+          style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            zIndex: 1100,
+            background: '#10b981',
+            color: '#ffffff',
+            padding: '12px 20px',
+            borderRadius: '16px',
+            fontWeight: '700',
+            fontSize: '0.9rem',
+            boxShadow: '0 8px 24px rgba(16, 185, 129, 0.35)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          {toastMessage}
+        </div>
+      )}
+
       {/* 1. Landing View (Page 1) */}
       {view === 'landing' && (
         <RoleSelector
@@ -279,6 +377,7 @@ export default function App() {
             participantCount={participantCount}
             studentCount={studentCount}
             onOpenQR={() => setShowQR(true)}
+            onOpenShortcuts={() => setShowShortcuts(true)}
             onEndSession={handleEndSession}
             onLeaveSession={handleHome}
             isEnded={isEnded}
@@ -370,6 +469,14 @@ export default function App() {
       {/* How It Works Explainer Modal */}
       {showHowItWorks && (
         <ExplainerModal onClose={() => setShowHowItWorks(false)} />
+      )}
+
+      {/* Desktop Keyboard Shortcuts Modal */}
+      {showShortcuts && (
+        <KeyboardShortcutsModal
+          role={role}
+          onClose={() => setShowShortcuts(false)}
+        />
       )}
 
       {/* Moderation Block Alert Banner */}
