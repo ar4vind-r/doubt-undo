@@ -148,27 +148,3 @@ Run unit tests via:
 ```
 
 ---
-
-## 💡 Viva Questions & Answers
-
-#### **Q1. How does Abstraction differ from Encapsulation in your implementation?**
-> **Answer**: 
-> - **Abstraction** focuses on *what* an object does rather than *how* it does it. We demonstrate this via `abstract class User` and `interface Votable`, exposing abstract contracts (`canAnswer()`, `upvote()`) without exposing concrete subclass details.
-> - **Encapsulation** focuses on hiding internal state and wrapping data with methods. In `Post.java` and `Doubt.java`, fields are private, setters validate length constraints (`MAX_TEXT_LENGTH`), and `upvotes` can only be modified through controlled methods like `upvote()`.
-
-#### **Q2. Where is Polymorphism used in the backend?**
-> **Answer**: 
-> - **Method Overriding (Dynamic Polymorphism)**: `Student` and `Teacher` override `canAnswer()` and `displayName()` from `User`. When `user.canAnswer()` is evaluated at runtime in `ClassroomService`, Java executes the appropriate subclass implementation.
-> - **Method Overloading (Static Polymorphism)**: `addDoubt(room, author, text)` and `addDoubt(room, author, text, isAnonymous)` in `ClassroomService` provide compile-time polymorphic method signatures.
-
-#### **Q3. Why did you use the Strategy Pattern for Duplicate Doubt Detection?**
-> **Answer**: 
-> By introducing `interface DuplicateDetector`, we decouple the detection algorithm from `ClassroomService`. If we want to replace `DefaultDuplicateDetector` (Levenshtein similarity) with an AI or TF-IDF embedding model in the future, we can simply swap the strategy implementation without modifying `ClassroomService` or existing client code.
-
-#### **Q4. How is thread safety ensured during upvoting?**
-> **Answer**: 
-> Multi-threaded WebSocket connections can receive simultaneous upvote requests for the same doubt. In `Doubt.java`, the `upvote()` and `toggleUpvote()` methods are marked with `synchronized`, ensuring atomic updates to the `upvotes` counter and thread-safe operations on `upvotedUsers`.
-
-#### **Q5. Why is `ClassroomManager` implemented as a Singleton?**
-> **Answer**: 
-> `ClassroomManager` manages global in-memory session state across all WebSocket connections and REST requests. Implementing it as a double-checked locking thread-safe Singleton ensures exactly one instance exists across the entire Spring application lifecycle.
